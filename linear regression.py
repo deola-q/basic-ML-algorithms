@@ -25,25 +25,26 @@ def r2(y_pr, y):
 
 
 class MyLineReg:
-    def __init__(self, n_iter=100, learning_rate=0.1, weights=None, metric=None):
+    def __init__(self, n_iter=100, learning_rate=0.1, weights=None, metric=None, reg=None, l1_coef=0, l2_coef=0):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
         self.weights = weights
         self.metric = metric
         self.best_score = None
-    #   mae mse rmse mape r2
+        self.reg = reg
+        self.l1_coef = l1_coef
+        self.l2_coef = l2_coef
 
     def __str__(self):
         return f'MyLineReg class: n_iter={self.n_iter}, learning_rate={self.learning_rate}'
 
     def fit(self, X, y, verbose=False):
-        global metric_calc
         X.insert(loc=0, column='w0', value=1)
         self.weights = np.array(X.shape[1] * [1])
         for i in range(self.n_iter):
             y_pr = X @ self.weights
-            mse = ((y_pr - y) ** 2).sum() / len(y)
-            grad = (2 / len(y)) * (y_pr - y) @ X
+            mse = (((y_pr - y) ** 2).sum() / len(y)) + self.calc_reg()[0]
+            grad = ((2 / len(y)) * (y_pr - y) @ X) + self.calc_reg()[1]
             self.weights = self.weights - self.learning_rate * grad
             if verbose and i % verbose == 0:
                 print(f'{i} | loss: {mse} | metric_name: {self.calc_metrics(y_pr, y)}')
@@ -73,3 +74,24 @@ class MyLineReg:
             return np.sum(np.abs((y - pred) / y)) / len(pred) * 100
         else:
             return None
+
+    def calc_l1(self):
+        grad = self.l1_coef * np.sign(self.weights)
+        return self.l1_coef * abs(self.weights).sum(), grad
+
+    def calc_l2(self):
+        grad = self.l2_coef * 2 * self.weights
+        return self.l2_coef * (self.weights ** 2).sum(), grad
+
+    def calc_reg(self):
+        l1_reg, l1_grad = self.calc_l1()
+        l2_reg, l2_grad = self.calc_l2()
+        if self.reg == 'elasticnet':
+            return l1_reg + l2_reg, l1_grad + l2_grad
+        elif self.reg == 'l1':
+            return l1_reg, l1_grad
+        elif self.reg == 'l2':
+            return l2_reg, l2_grad
+        else:
+            return 0, 0
+
