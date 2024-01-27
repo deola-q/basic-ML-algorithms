@@ -45,7 +45,11 @@ class MyLineReg:
             y_pr = X @ self.weights
             mse = (((y_pr - y) ** 2).sum() / len(y)) + self.calc_reg()[0]
             grad = ((2 / len(y)) * (y_pr - y) @ X) + self.calc_reg()[1]
-            self.weights = self.weights - self.learning_rate * grad
+            if isinstance(self.learning_rate, (int, float)):
+                self.weights = self.weights - self.learning_rate * grad
+            else:
+                lr = self.learning_rate(i + 1)
+                self.weights = self.weights - lr * grad
             if verbose and i % verbose == 0:
                 print(f'{i} | loss: {mse} | metric_name: {self.calc_metrics(y_pr, y)}')
         final_y_pr = X @ self.weights
